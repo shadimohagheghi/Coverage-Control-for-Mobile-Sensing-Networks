@@ -1,0 +1,23 @@
+function [xpolygon,ypolygon]=polygon_from_unordered_set_of_points(xr,yr,length(xr))
+xy(:,1)=x;
+xy(:,2)=y;
+for j1=1:N
+    for j2=j1:N
+        dmat(j1,j2)=sqrt((xy(j1,1)-xy(j2,1))^2      +  (xy(j1,2)-xy(j2,2))^2   );...
+        dmat(j2,j1)=dmat(j1,j2);...    
+    end
+end
+popSize = 60;
+numIter = 100;
+showProg = 0;
+showResult = 0;
+
+[optRoute,minDist] = tsp_ga(xy,dmat,popSize,numIter,showProg,showResult);...
+for t=1:length(optRoute)
+    xpolygon(t)=x(optRoute(t));...
+    ypolygon(t)=y(optRoute(t));...   
+end
+xpolygon(end+1)=xpolygon(1);...
+ypolygon(end+1)=ypolygon(1);...
+plot(xpolygon,ypolygon,'blue');
+return

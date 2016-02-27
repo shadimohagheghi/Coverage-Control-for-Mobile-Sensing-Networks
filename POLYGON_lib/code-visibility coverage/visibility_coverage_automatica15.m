@@ -1,0 +1,231 @@
+% %===================================================================================================================================================================================
+clear all
+clc
+clf 
+
+%radius=8;...
+R=1000;...%communication radius--not needed for this code--it is mentioned in case we want to extend the algorithm incorporating communication constraints
+N=10;...%number of robots
+%sensing radius r
+% r=[0.620000000000000   0.580000000000000   0.670000000000000   0.420000000000000   0.740000000000000   0.47000000000000 0.550000000000000   0.50000000000000   0.480000000000000   0.180000000000000   0.500000000000000   0.650000000000000];
+%  r=[ 0.6 0.55  0.5  0.4 0.35 0.45 0.55 0.48 0.45 0.33 0.5 0.65 0.40 0.38 0.42 0.38 0.58 0.47 0.35 0.45 0.5 0.5 0.3 0.6 0.65 0.45 0.34 0.35 0.55 0.4 0.6 0.3 0.5 0.6 ]*0.9;...% 20 aktines
+% r=[0.0006 100 100 100 100]
+%r=[0.6 0.35 0.5 0.35 0.4 0.45 0.48 0.55 0.33 0.45 0.65 0.5 0.40 0.38 0.42 0.38 0.58 0.47 0.35 0.45 0.5 0.5 0.3 0.6 0.65 0.45 0.34 0.35 0.55 0.4 0.6 0.3 0.5 0.6 ]*2;...% 20 aktines
+% r(1:N)=0.6;
+%r=[0.6 0.55 0.5 0.4 0.35 0.45 0.55 0.48 0.45 0.33 0.5 0.65 0.40 0.38 0.42 0.38 0.58 0.47 0.35 0.45 0.5 0.5 0.3 0.6 0.65 0.45 0.34 0.35 0.55 0.4 0.6 0.3 0.5 0.6 ];...% 20 aktines
+% r=[0.7 0.6 0.8 1 0.6 0.65 1 1 1.2 1.3 0.75 0.85 0.9 0.95 0.85 0.98 1.1 1.1 1.15 1.2 1.05 0.85 0.75 0.77 0.95 0.95 1.1 1.2 1 1 0.9];
+% r=[0.9 1 1.2 0.6 1.3 1.4 0.5 1.6 1.7 1.45 1.68 1.85 2 1.55];%14
+%  r=[0.4 0.5 0.3 0.4 0.7 0.45 0.6 0.55  0.4 0.2 0.1 0.75 1 0.6 0.4 0.15 0.33 0.75 0.35 0.62];...% 20 aktines
+% r=[1 2 3 5 4.5 3.2 3.8 1.9 2.6 5.1 ];%10
+ r=[0.7 0.5 0.9 0.6 0.45 0.35 0.7 0.6 0.7  0.55 ];%10
+
+
+
+
+figure(1) %main figure
+% axis([0 window1 0 window2])
+axis equal          
+hold on
+
+
+%----------------------- Plot non-convex area ---------------------------------
+%x1,y1 :x,y coordinates of the non-convex region
+
+
+x1=[0 0 5 5   7    7    5            5 7 7 4 4 2 2 0]; 
+y1=[0 5 5 4.5 4.5  3.5  3.5          1 1 0 0 3 3 0 0 ];
+
+
+axis on
+% axis([-6 7 -1 7])
+set(gcf,'color',[1,1,1])
+plot(x1,y1,'k','linewidth',1.4);...
+pol=[x1(:) y1(:)];    
+%--------------------------------------------------------------------------
+%------------Area of convex/concave area of interest-----------------------
+total_area=polyarea(x1,y1);...
+%--------------------------------------------------------------------------
+%----------------------Initial State---------------------------------------
+% x,y are the coordinates of the robots' positions
+% disp(' Place the robots with the left mouse button ')
+% for g=1:1:N
+%  [Px,Py]=ginput(1);...
+%  plot(Px,Py,'b+');...
+%  xy(:,g) = [Px;Py];...
+%  x=xy(1,:);...
+%  y=xy(2,:);...
+% %r(g)=radius;...
+% end
+ 
+
+x=[5.493682795698923   5.316107809847198   5.719687323146575   5.913405489530275   5.929548670062252 5.703544142614600   5.638971420486699   6.074837294850028   6.365414544425578   6.381557724957554];
+y=[0.683892190152802   0.457887662705150   0.312599037917375   0.667749009620827   4.170819185059422 3.993244199207696   4.235391907187323   3.831812393887945   4.138532823995472   3.847955574419920]
+
+p=[x(:) y(:)];
+
+
+% % %---------%save initial state-------------------------
+        x0=x(1:N);...
+        y0=y(1:N);...
+
+
+%--------------------------------------------------------------------------
+%================================================================First Coordination scheme===================================================================
+ts=0.015;...
+umax=1;...
+max_step=ts*umax ;...%max step
+flag=1;...%loop in non-stop way
+ h=0;...%current time-step
+axis([-2.5 4 0 7]) 
+
+[vor,r_lim]=power_visibility_Voronoi_v3(p,pol,r); %vor :visibility power Voronoi; r_lim: range-limited power Voronoi; this function works for both homogeneous and heterogeneous networks
+%[vor,r_lim]=visibilityVoronoi_r_v2(p,pol,r); use this function if you plan
+%to use homogeneous robots, since it is much faster than the above
+%function (because it is based on Voronoi and not on power diagrams)
+plot_r_visible_voronoi_diagrams_V2(r_lim,N,x,y);
+
+while (flag>=1);
+        %===============motion planning======update robots' positions 
+     for j=1:N
+        I=createI(j,N); %the set of nodes, "I" doesn't play any role here. It is mentioned in  case we need to incorporate communication constraints in the future
+       
+        if isempty(r_lim{j,1}) 
+             theta=[];
+        else
+             [theta,F_a,F_ax,F_ay]=gradient_motion_V8(j,r_lim,x,y,x1,y1,I,r);
+            
+             if ~isempty(theta) 
+             x(j)=x(j)+ts*umax*cos(theta);
+             y(j)=y(j)+ts*umax*sin(theta);
+             end
+        end
+     end
+       %====================================== -==========================
+       %-------------------------------------------------------------------
+       p=[x(:) y(:)];
+      [vor,r_lim]=power_visibility_Voronoi_v3(p,pol,r);%update partitioning based on new positions
+      %[vor,r_lim]=visibilityVoronoi_r_v2(p,pol,r); use this function if you plan
+%to use homogeneous robots,
+      %--------------------------------------------------------------------
+        %------------plotting
+     for j=1:N
+        plot(x(j),y(j),'blueo','markersize',3,'markerfacecolor','blue');
+     end
+     pause(0.1)
+     clf, hold on, axis equal,axis off%, clc
+     figure(1)
+     hold on
+     plot(x1,y1,'k','linewidth',1.4)
+     plot_r_visible_voronoi_diagrams_V2(r_lim,N,x,y) ;
+        %-------------------
+     h=h+1;  %increase current time-step 
+     sensed_area= percentage_of_sensed_area_non_compact(r_lim,total_area,N);...%evaluates current percentage of sensed area
+     H(h)=sensed_area;...%save
+    
+     %-----save nodes' positions each time step------
+     for ji=1:N 
+     test_x(h,ji)=x(ji);...
+     test_y(h,ji)=y(ji);...
+     end
+     %-----------------------------------------------
+     %save data
+    if mod(h,50)==0
+    save sim6_v2.mat
+    end
+end
+
+%============================================================================================================================================================
+
+%\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+%=================================================================PlotFigures================================================================================
+%for final figures
+%---------------------plot trajectories--------------------
+figure(2) 
+% x0=test_x(1,:);y0=test_y(1,:);
+ axis([0 6 -0.1 6])
+axis equal          
+hold on
+axis on
+plot(x1,y1,'black')
+plot(x0,y0,'ro','markersize',2,'markerfacecolor','r')
+plot(x(1:N),y(1:N),'go','markersize',3,'markerfacecolor','g')
+plot(test_x,test_y,'k')
+plot(x(1:N),y(1:N),'go','markersize',4.5,'markerfacecolor','g')
+%-----------------------------------------------------------
+%-----------------plot Area function H----------------------
+figure(1)
+axis([0 1000 0 100])
+box on
+a=(N*pi*r(1)*r(1)/total_area)*100;...
+if a>100
+    a=100;...
+end
+% axis([0 h 0 a])
+hold on
+t=1:h;
+%H=H(1:h);
+plot(t,H,'b')
+max_area(1:h)=a%max_sensed;...
+plot(t,max_area,'r')
+xlabel('Iterations')
+ylabel('Coverage Performance(%)')
+
+%-----------------------------------------------------------
+
+%---------------------plot initial state--------------------
+figure 
+% axis([-0.1 3.1 -0.1 3.1])
+axis equal          
+hold on
+axis off
+plot(x1,y1,'k')
+plot(x0,y0,'ro','markersize',1.5,'markerfacecolor','r')
+ axis([0 window1 0 window2])
+% x0(N+1)=-100000;...%Needed for Voronoi plotting
+% x0(N+2)=-100000;...%...
+% x0(N+3)=100000;...%...
+% x0(N+4)=100000;...
+% y0(N+1)=-100000;...
+% y0(N+2)=100000;...
+% y0(N+3)=-100000;...
+% y0(N+4)=100000;...
+%[r_lim,vor]=visible_r_limited_voronoi(x0,y0,x1,y1,r,N,neigh_NxN0,hops);...
+%[r_lim,vor,vispol]=r_visible_voronoi_diagrams(x0,y0,x1,y1,N,r);...
+p0=[x0(:) y0(:)];
+  [vor,r_lim]=power_visibility_Voronoi_v3(p0,pol,r);
+%   plot_r_visible_voronoi_diagrams_V2(r_lim,N,x,y);
+  %[vor,r_lim]=visibility_power_diagrams_v2(x0,y0,x1,y1,N,r);
+% plot_communication_graph_concave(x0,y0,N,neigh_NxN0)
+for e1=1:N
+        tx=(r_lim{e1,1});...
+        ty=(r_lim{e1,2});... 
+        plot(tx,ty,'red')
+        tx=[];...
+        ty=[];...    
+end
+%[r_lim,vor]=plot_r_limited_voronoi_v4(x0,y0,x1,y1,N,r);...
+%-----------------------------------------------------------
+
+%----------plot final state---------------------------------
+figure 
+ axis([0 window1 0 window2])
+axis equal          
+hold on
+plot(x1,y1,'k')
+plot(x,y,'ro','markersize',1.5,'markerfacecolor','r')
+%[r_lim,vor]=visible_r_limited_voronoi(x,y,x1,y1,r,N,neigh_NxN,hops);...
+%[r_lim,vor,vispol]=r_visible_voronoi_diagrams(x,y,x1,y1,N,r);...
+% plot_communication_graph_concave(x,y,N,neigh_NxN)
+%[r_lim,vor,vispol]=r_visible_voronoi_diagrams(x,y,x1,y1,N,r);...
+%[vor,r_lim]=r_visible_voronoi_diagrams_v8(x,y,x1,y1,r,N);
+   [vor,r_lim]=power_visibility_Voronoi_v3(p,pol,r);%[vor,r_lim]=visibility_power_diagrams_v2(x,y,x1,y1,N,r);
+for e1=1:N
+        tx=(r_lim{e1,1});...
+        ty=(r_lim{e1,2});... 
+        plot(tx,ty,'red')
+        tx=[];...
+        ty=[];...    
+end
+%-----------------------------------------------------------
+%===================================================================================================================================================================================
