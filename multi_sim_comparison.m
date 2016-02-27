@@ -1,3 +1,8 @@
+%obstacle configuration - numerical id for obstacle configurations described in get_obstacle_set
+% density_function_type - UNIMPLEMENTED
+%density_function_params - UNIMPLEMENTED
+%num_agents - as described, integer input
+%num_iterations - number of iterations to compute for each simulation
 function multi_sim_comparison(obstacle_configuration, density_function_type,density_function_params, num_agents,num_iterations)
 
 %random seed
