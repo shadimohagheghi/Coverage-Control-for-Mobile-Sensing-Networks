@@ -1,4 +1,4 @@
-function approximation_discrete_nonconvex_coverage(numIteration, showPlot, num_agents, obstacles,seed)
+function agent_locations = approximation_discrete_nonconvex_coverage(numIteration, showPlot, num_agents, obstacles,seed)
 close all
 
 rng(seed);
@@ -13,6 +13,7 @@ yrange = 30;
 grid_mat = zeros(xrange,yrange);
 density_mat = grid_mat;
 
+agent_locations = zeros(numIteration,num_agents,2);
 n = num_agents; %number of robots  (changing the number of robots is interesting)
 
 crs = [ 1, 1;
@@ -190,7 +191,8 @@ for counter = 1:numIteration
         Px(i) = prev(1); 
         Py(i) = prev(2);
     end
-    
+    %Store agent locations
+    agent_locations(counter,:,:) = [Px Py];
     if showPlot
         for i = 1:num_agents % update Voronoi cells
             %TODO - find a way to plot cells
@@ -475,4 +477,4 @@ end %end while
 
 %A toy density function - Gaussian density around center point (cx,cy)
 function r = density(x,y)
-   r = exp(-((x-2.5)*(x-2.5)) + -((y-5)*(y-5))) + exp(-((x-50)*(x-50)) + -((y-10)*(y-10)))  + exp(-((x-60)*(x-60)) + -((y-15)*(y-15))/1000 ) ;
+   r = exp(-((x-5)*(x-5)) + -((y-5)*(y-5)));

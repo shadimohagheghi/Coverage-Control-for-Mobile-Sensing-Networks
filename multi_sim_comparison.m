@@ -10,20 +10,24 @@ obstacles = get_obstacle_set(obstacle_configuration)
 show_plot = true;
 
 %Run the 4 algorithms using params specified in function input
-%Set control gain
+%Set control gaintrue
 control_gain = 0.1;
 agent_loc(1,:,:,:) = loydsAlgorithm_nonuniform(num_iterations,show_plot,num_agents,obstacles,seed,control_gain);
-
-
-%agent_loc(2,:,:,:) = approximation_discrete_nonconvex_coverage(num_iterations,show_plot,num_agents,obstacles,seed)
+agent_loc(2,:,:,:) = approximation_discrete_nonconvex_coverage(num_iterations,show_plot,num_agents,obstacles,seed);
 %agent_loc(3,:,:,:) = combined
 %agent_loc(4,:,:,:) = optimal_coverage_grid
 
-%Plot cost function
+%Plot cost functions
+
 v = 1:num_iterations;
 cost = get_cost_timeline(agent_loc(1,:,:,:),obstacles);
 figure(2);
 plot(v,cost);
+
+cost = get_cost_timeline(agent_loc(2,:,:,:),obstacles);
+figure(3);
+plot(v,cost);
+
 
 end
 
@@ -36,7 +40,7 @@ function obstacles = get_obstacle_set(ob_config)
     if (ob_config == 1)
         obstacles = [];
     elseif ob_config == 2
-        obstacles(1,:,:) = [0,0;5,0;5,5;0,5;0,0];
+        obstacles(1,:,:) = [0,0;10,0;10,10;2,7;7,4;0,0];
         %obstacles(2,:,:) = [
         %obstacles(3,:,:) = [
         %obstacles(4,:,:) = [
