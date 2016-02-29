@@ -3,36 +3,71 @@
 %density_function_params - UNIMPLEMENTED
 %num_agents - as described, integer input
 %num_iterations - number of iterations to compute for each simulation
-function multi_sim_comparison(obstacle_configuration, density_function_type,density_function_params, num_agents,num_iterations)
+function agent_loc = multi_sim_comparison(obstacle_configuration, density_function_type,density_function_params, num_agents,num_iterations, agent_loc)
 
 %random seed
-seed = 10;
+seed = 16;
 
 %Setup obstacles
-obstacles = get_obstacle_set(obstacle_configuration)
+obstacles = get_obstacle_set(obstacle_configuration);
 
 %For now show plots of algorithm runs
 show_plot = true;
 
-%Run the 4 algorithms using params specified in function input
-%Set control gaintrue
-control_gain = 0.1;
-agent_loc(1,:,:,:) = loydsAlgorithm_nonuniform(num_iterations,show_plot,num_agents,obstacles,seed,control_gain);
-agent_loc(2,:,:,:) = approximation_discrete_nonconvex_coverage(num_iterations,show_plot,num_agents,obstacles,seed);
-%agent_loc(3,:,:,:) = combined
-%agent_loc(4,:,:,:) = optimal_coverage_grid
+%If agent_loc is not passed as argument
+if nargin < 6
+    
+    %Run the 4 algorithms using params specified in function input
+    agent_loc = zeros(4,num_iterations,num_agents,2);
+
+    %Set control gain
+    control_gain = 0.1;
+
+    %Run lloyd style algorithm
+    agent_loc(1,:,:,:) = loydsAlgorithm_nonuniform(num_iterations,show_plot,num_agents,obstacles,seed,control_gain);
+
+    %Run approximation via search based grid algorithm
+    agent_loc(2,:,:,:) = approximation_discrete_nonconvex_coverage(num_iterations,show_plot,num_agents,obstacles,seed);
+
+    %Run combined tangentbug and lloyd
+    loop_gain = 3;
+    max_step = 0.25;
+    agent_loc(3,:,:,:) = combined(num_iterations,show_plot,num_agents,obstacles,seed,control_gain,loop_gain,max_step);
+
+    %Run optimal annealing, algorithm
+    %agent_loc(4,:,:,:) = optimal_coverage_grid(num_iterations,show_plot,num_agents,obstacles,seed);
+end
 
 %Plot cost functions
 
 v = 1:num_iterations;
-cost = get_cost_timeline(agent_loc(1,:,:,:),obstacles);
+NUM_SAMPLES = 1000;
+cost_lloyd  = get_cost_timeline(agent_loc(1,:,:,:),obstacles,NUM_SAMPLES);
+cost_approx  = get_cost_timeline(agent_loc(2,:,:,:),obstacles,NUM_SAMPLES);
+cost_combined = get_cost_timeline(agent_loc(3,:,:,:),obstacles,NUM_SAMPLES);
+cost_optimal  = get_cost_timeline(agent_loc(4,:,:,:),obstacles,NUM_SAMPLES);
+
+
 figure(2);
-plot(v,cost);
+plot(v,cost_lloyd,'o',v,cost_approx,'+',v, cost_combined,'x',v,cost_optimal,'^');
+title('Coverage Control Sampled (1000) Cost');
+xlabel('Iterations');
+ylabel('Cost');
 
-cost = get_cost_timeline(agent_loc(2,:,:,:),obstacles);
+
+NUM_SAMPLES = 3000;
+
+cost_lloyd = get_cost_timeline(agent_loc(1,:,:,:),obstacles,NUM_SAMPLES);
+cost_approx = get_cost_timeline(agent_loc(2,:,:,:),obstacles,NUM_SAMPLES);
+cost_combined = get_cost_timeline(agent_loc(3,:,:,:),obstacles,NUM_SAMPLES);
+cost_optimal  = get_cost_timeline(agent_loc(4,:,:,:),obstacles,NUM_SAMPLES);
+
+
 figure(3);
-plot(v,cost);
-
+plot(v,cost_lloyd,'o',v,cost_approx,'+',v, cost_combined,'x',v,cost_optimal,'^');
+title('Coverage Control Sampled (3000) Cost');
+xlabel('Iterations');
+ylabel('Cost');
 
 end
 
@@ -44,21 +79,28 @@ function obstacles = get_obstacle_set(ob_config)
     obstacles = [];
     if (ob_config == 1)
         obstacles = [];
-    elseif ob_config == 2
-        obstacles(1,:,:) = [0,0;10,0;10,10;2,7;7,4;0,0];
-        %obstacles(2,:,:) = [
-        %obstacles(3,:,:) = [
-        %obstacles(4,:,:) = [
-            
+    elseif mod(ob_config,2) == 0
+        %one saw shape osbtacle in bottom left corner
+        obstacles(size(obstacles,1)+1,:,:) = [0,0;10,0;10,10;2,7;7,4;0,0];
+    elseif mod(ob_config,3) == 0
+        % 
+          obstacles(size(obstacles,1)+1,:,:) = [0,0;20,0;20,10;3,10;3,6;7,6;7,4;3,4;0,0];
+    elseif mod(ob_config,5) == 0
+        obstacles(size(obstacles, 1)+1,:,:) = [5,25;25,5;15,10;5,25];
     end
-
+    
 end
 
 %Use sampling to detesrmine global cost
-function cost_vec = get_cost_timeline(agent_locations,obstacles)
-	NUM_SAMPLES = 2000;
+function cost_vec = get_cost_timeline(agent_locations,obstacles, NUM_SAMPLES)
 	xrange = 30;
 	yrange = 30;
+    
+    if min(agent_locations == 0) == 1
+        cost_vec = zeros(size(agent_locations,2));
+        return;
+    end
+        
 	sample_points(:,1) = rand(NUM_SAMPLES,1)*xrange;
 	sample_points(:,2) = rand(NUM_SAMPLES,1)*yrange;
 	sample_points(:,3) = zeros(NUM_SAMPLES,1);
@@ -90,7 +132,9 @@ function cost_vec = get_cost_timeline(agent_locations,obstacles)
                 cost_vec(counter,1) = cost_vec(counter,1) + min_dist * density(sample_points(i,1),sample_points(i,2));
             end
         end
-	end
+    end
+    
+    cost_vec = cost_vec ./ NUM_SAMPLES;
 
 end
 

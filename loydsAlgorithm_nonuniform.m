@@ -4,18 +4,17 @@ function agent_locations = loydsAlgorithm_nonuniform(numIterations,showPlot,num_
 
 close all
 K_prop = control_gain;
-rng(seed)
+rng(seed);
 
 xrange = 30;  %region size
 yrange = 30;
 n = num_agents; %number of robots  (changing the number of robots is interesting)
 Px = zeros(n,1);
 Py = zeros(n,1);
-agent_locations = zeros(numIterations,n,1);
+agent_locations = zeros(numIterations,n,2);
 
-%MAtrix to hold agent trajactories over timeline
-agent_timeline = zeros(numIterations,n,2);
 
+%Bounding box setup
 crs = [ 0, 0;
     0, yrange;
     xrange, yrange;
@@ -176,13 +175,12 @@ function a = triangle_area(P1,P2,P3)
     a = sqrt(s*(s-e12)*(s-e23)*(s-e31));    
 
 
-%A toy density function - Gaussian density around center point (cx,cy)
+%Simple gaussian density around center point (cx,cy)
 function r = density(x,y)
-   %r = exp(-((x-1)*(x-1)) + -((y-5)*(y-5)));
-   r = exp(-((x-5)*(x-5)) + -((y-5)*(y-5)));
+	r = exp(-(x-5)*(x-5)-(y-5)*(y-5));
+
+
    
-   %r = exp(-(abs(y-5)));
-   %r = 0.01;
 function [Cx,Cy] = PolyCentroidNonuniformDensity(X,Y)
     CELL_SAMPLES = 500;
     %Triangulate points - returns a list of indices

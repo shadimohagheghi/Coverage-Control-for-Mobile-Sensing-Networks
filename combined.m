@@ -1,124 +1,103 @@
+%Non-convex coverage control -
+%based on Breitenmoser, Shwager,et al -  Voronoi Coverage of Non-convex
+%Environments with a group of networked robots
+%%%%%%%Params%%%%%%%%%%%%%%
+% loop_gain - specify the number of tangent bug iterations to compute
+% per every 
+% path_step_size to specific the max step size for each agent during
+% local motion planning steps.
+function  agent_locations = combined(numIterations,showPlot,num_agents,obstacles,seed,control_gain,loop_gain,max_step)
 
-%function [px, py] = combined( crs, numIterations, showPlot)
-function  combined( crs, numIterations, showPlot)
+K_prop = control_gain;
 
-%loydsAlgorithm(0.01*rand(50,1),zeros(50,1)+1/2, [0,0;0,1;1,1;1,0], 200, true)
+showPlot = true;
+global xrange;
+xrange = 30;  %region size
+global yrange;
+yrange = 30;
+n = num_agents; %number of robots  (changing the number of robots is interesting)
 
-%seed = 1;
-K_prop = 0.7;
-%rng(seed);
+%Real agent locations
+Px = zeros(n,1);
+Py = zeros(n,1);
 
-if nargin < 1   % demo mode
-    showPlot = true;
-    numIterations  = 30;
-    xrange = 10;  %region size
-    yrange = 10;
-    n = 6; %number of robots  (changing the number of robots is interesting)
+Px2=Px;
+Py2=Py;
 
-    Px = 0.05*mod(1:n,ceil(sqrt(n)))'*(xrange-0.5); %start the robots in a small grid
-    Py = 0.05*floor((1:n)/sqrt(n))'*(yrange-0.5);
-    
-    Px2=Px;
-    Py2=Py;
-      
-%     Px = rand(n,1)*(xrange-0.1); % place n  robots randomly
-%     Py = rand(n,1)*(yrange-0.1);
-     
-    crs = [0, 0;
-        0, yrange;
-        xrange, yrange;
-        xrange, 0;
-        0,0 ];
-    
-    for i = 1:numel(Px)  
-        while ~inpolygon(Px(i),Py(i),crs(:,1),crs(:,2)) % ensure robots are inside the boundary
-            Px(i) = rand(1,1)*xrange; 
-            Py(i) = rand(1,1)*yrange;
+%Timeline of real locations
+agent_locations = zeros(numIterations,n,2);
+
+crs = [0, 0;
+    0, yrange;
+    xrange, yrange;
+    xrange, 0;
+    0,0 ];
+
+%Setup agent locations randomly
+for i = 1:n
+    valid_location = 0;
+    while (valid_location == 0)
+        %Setup location as valid (hypothesis)
+        Px(i) = rand()*xrange; 
+        Py(i) = rand()*yrange;
+        
+        valid_location = 1;
+        %Test for all obstacles
+        for ob =1:size(obstacles,1)
+            if (inpolygon(Px(i),Py(i),obstacles(ob,:,1), obstacles(ob,:,2)))
+                valid_location = 0;
+                break;
+            end
         end
+
     end
-    %copy real generator positions to virtual positions.
-    Vx = Px;
-    Vy = Py;
-else
-    xrange = max(crs(:,1));
-    yrange = max(crs(:,2));
-    n = numel(Px); %number of robots  
 end
+
+
+%Vx,Vy store locations of virtual generators
+%copy real generator positions to virtual positions.
+Vx = Px;
+Vy = Py;
+
 
 %%%%%%%%%%%%%%%%%%%%%%%% VISUALIZATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if showPlot
+    close all;
     figure(1);
-    %hold on
-    %figure(2);
     verCellHandle = zeros(n,1);
-    cellColors = hsv(n);
+    cellColors = hsv(n + size(obstacles,1));
     for i = 1:numel(Px) % color according to
         verCellHandle(i)  = patch(Px(i),Py(i),cellColors(i,:)); % use color i  -- no robot assigned yet
         hold on
     end
+    
     pathHandle = zeros(n,1);    
-    %numHandle = zeros(n,1);    
+    numHandle = zeros(n,1);    
     for i = 1:numel(Px) % color according to
-        %pathHandle(i)  = plot(Px(i),Py(i),'-','color',cellColors(i,:)*.8);
-        %numHandle(i) = text(Px(i),Py(i),num2str(i));
+        pathHandle(i) = plot(Px(i),Py(i),'-','color',cellColors(i,:)*.8);
+        numHandle(i) = text(Px(i),Py(i),num2str(i));
+    end
+        
+    for j = 1:size(obstacles,1)
+        obstacleHandle(j) = patch(obstacles(j,:,1),obstacles(j,:,2),cellColors(n+1,:));
     end
     
     goalHandle = plot(Px,Py,'+','linewidth',2, 'color','black');
-    %currHandle = plot(Px,Py,'o','linewidth',2, 'color','black');
-    
+    %currHandle = plot(Px,Py,'o','linewidth',2, 'color','black');    
     goalHandle2 = plot(Px2,Py2,'*','linewidth',2, 'color','black');
-    obs = zeros(1,4,2);
-     obs(1,:,:) = [2 2; 8 2; 8 8; 2 8];
-%     plot(obs1(:,1),obs1(:,2),'ro');%plot red circles for visualization
-%     
-%     patch(obs1(:,1),obs1(:,2),'g'); %plot obstacle
-%     
-%     %similarly for the rest of the obstacles
-%     
-%     obs2 = [6 2; 7 2; 7 3; 6 3];
-%     plot(obs2(:,1),obs2(:,2), 'ro');
-%     
-%     patch(obs2(:,1),obs2(:,2),'g');
-% 
-%     
-%     obs3 = [3 6; 4 6; 4 7; 3 7];
-%     plot(obs3(:,1),obs3(:,2),'ro');
-% 
-%     patch(obs3(:,1),obs3(:,2),'g');
-%     obs4= [6 6; 7 6; 7 7; 6 7];
-%     plot(obs4(:,1),obs4(:,2),'ro');
-%     
-%     patch(obs4(:,1),obs4(:,2),'g');
-%     
-     
     titleHandle = title(['o = Robots, + = Goals, Iteration ', num2str(0)]);
     hold on;
 end
 %%%%%%%%%%%%%%%%%%%%%%%% END VISUALIZATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-DISPLACEMENT = zeros(numIterations,1);
-MAX_DISPLACEMENT = 0.5;
 
 % Iteratively Apply LLYOD's Algorithm
 for counter = 1:numIterations
-    
-    %loydsAlgorithm_nonuniform(i,Px,Py, crs, numIterations, showPlot)
-    %[v,c]=VoronoiLimit(Px,Py, crs, false);
+
     [v,c]=VoronoiBounded(Vx,Vy, crs);
-    
-%     if showPlot
-%         set(currHandle,'XData',Px,'YData',Py);%plot current position
-%         for i = 1:numel(Px) % color according to
-%             xD = [get(pathHandle(i),'XData'),Px(i)];
-%             yD = [get(pathHandle(i),'YData'),Py(i)];
-%             set(pathHandle(i),'XData',xD,'YData',yD);%plot path position
-%             set(numHandle(i),'Position',[ Px(i),Py(i)]);
-%         end 
-%     end
    
-    for i = 1:numel(c) %calculate the centroid of each cell
-        % Changed for non_uniform case
-        %[cx,cy] = PolyCentroid(v(c{i},1),v(c{i},2));
+    for i = 1:numel(c) 
         
+        %calculate the centroid of each cell
         [cx,cy] = PolyCentroidNonuniformDensity(v(c{i},1),v(c{i},2),counter);
         
         cx = min(xrange,max(0, cx));
@@ -130,17 +109,45 @@ for counter = 1:numIterations
                 
         end
         
-        %Update real positions
-        i;
+        %Update centroid positions for plotting
+       
         Px2(i)=cx;
         Py2(i)=cy;
-        [Px(i) Py(i)] = tangentBug( Px(i), Py(i), cx, cy, obs);
         
-        %[Px(i) Py(i)] = tangentBug(cx, cy, Px(i), Py(i), obs);
+        %If target is straight line viewable, use standard straight line
+        %driving
+        if (~path_occluded(obstacles,Px(i),Py(i),cx,cy))
+            Px(i) = Px(i) + -K_prop*(Px(i) - cx);
+            Py(i) = Py(i) + -K_prop*(Py(i) - cy);
+        else
+        
+            [Px(i),Py(i)] = tangentBug( Px(i), Py(i), cx, cy, obstacles, loop_gain, max_step);
+        end
     end
-       
-       if showPlot
+    
+    %Save real locations
+    agent_locations(counter,:,1) = Px;
+    agent_locations(counter,:,2) = Py;
+    
+    %DEBUG ensure all agents do not appear in obstacles
+    for j =1:num_agents
+        for ob = 1:size(obstacles,1)
+               
+            assert(~inpolygon(Px(j),Py(j),obstacles(ob,:,1),obstacles(ob,:,2)));
+        end
+    end
+    
+    
+% Visualization of agent paths
+    if showPlot
         
+        for i = 1:numel(Px) % color according to
+            xD = [get(pathHandle(i),'XData'),Px(i)];
+            yD = [get(pathHandle(i),'YData'),Py(i)];
+            set(pathHandle(i),'XData',xD,'YData',yD);%plot path position
+            set(numHandle(i),'Position',[ Px(i),Py(i)]);
+        end 
+
         for i = 1:numel(c) % update Voronoi cells
             %verCellHandle(i)
             set(verCellHandle(i), 'XData',v(c{i},1),'YData',v(c{i},2));
@@ -148,44 +155,42 @@ for counter = 1:numIterations
 
         set(titleHandle,'string',['o = Robots, + = Goals, Iteration ', num2str(counter,'%3d')]);
         set(goalHandle,'XData',Px,'YData',Py);%plot goal position
-        set(goalHandle,'XData',Px,'YData',Py)
         
         set(goalHandle2,'XData',Px2,'YData',Py2);%plot goal position
-        set(goalHandle2,'XData',Px2,'YData',Py2)
         
         axis equal
         axis([0,xrange,0,yrange]);
         drawnow
-%         if mod(counter,50) ==0
-%             pause
-%             %pause(0.1)
-%         end
-       end
-       
+    end
+      
+
 
 end
 
-% V = 1:numIterations;
-% figure (2);
-% DISPLACEMENT_LOG = log(DISPLACEMENT);
-% 
-% f = fit(V',DISPLACEMENT_LOG(:,1), 'poly1');
-% plot(V,DISPLACEMENT_LOG);
-% plot(f,V,DISPLACEMENT_LOG);
+end
 
-% function [Cx,Cy] = PolyCentroid(X,Y)
-% % The centroid of a non-self-intersecting closed polygon defined by n vertices (x0,y0), (x1,y1), ..., (xn?1,yn?1) is the point (Cx, Cy), where
-% % In these formulas, the vertices are assumed to be numbered in order of their occurrence along the polygon's perimeter, and the vertex ( xn, yn ) is assumed to be the same as ( x0, y0 ). Note that if the points are numbered in clockwise order the area A, computed as above, will have a negative sign; but the centroid coordinates will be correct even in this case.http://en.wikipedia.org/wiki/Centroid
-% % A = polyarea(X,Y)
-% 
-% Xa = [X(2:end);X(1)];
-% Ya = [Y(2:end);Y(1)];
-% 
-% A = 1/2*sum(X.*Ya-Xa.*Y); %signed area of the polygon
-% 
-% Cx = (1/(6*A)*sum((X + Xa).*(X.*Ya-Xa.*Y)));
-% Cy = (1/(6*A)*sum((Y + Ya).*(X.*Ya-Xa.*Y)));
+function t = path_occluded(obstacles,Px,Py,cx,cy)
+    t = false;
+    for ob =1:size(obstacles,1)
+        for edge =1:size(obstacles,2)
+            vstart = obstacles(ob,edge,1:2);
+            if edge == size(obstacles,2)
+                vend = obstacles(ob,1,1:2);
+            else
+                vend = obstacles(ob,edge+1,1:2);
+            end
+            %Find the intersection point along trajectory of
+            %agent i to its destination
+            [int_x int_y] = polyxpoly([Px cx],[Py cy],[vstart(1) vend(1)],[vstart(2) vend(2)]);
+            if (~isempty(int_x) || ~isempty(int_y)) 
+                %obstacle_entered(size(obstacle_entered,1)+1,1:4) = [ob,edge,int_x,int_y]; 
+                t = true;
+                return 
+            end
 
+        end
+    end
+    
 end
 
 function a = triangle_area(P1,P2,P3)
@@ -196,13 +201,9 @@ function a = triangle_area(P1,P2,P3)
     a = sqrt(s*(s-e12)*(s-e23)*(s-e31));    
 end
 
-%A toy density function - Gaussian density around center point (cx,cy)
-function r = density(x,y, i)
-   %r = exp(-(x-0.02*cos(i))*(x-0.02*cos(i)) + -(y-0.02*sin(i))*(y-0.02*sin(i)));
-   %r = exp(-(x-5*cos(2*pi*i/180)-5)*(x-5*cos(2*pi*i/180)-5) + -(y-5*sin(2*pi*i/180)-5)*(y-5*sin(2*pi*i/180)-5));
-   r = exp(-((x-5)*(x-5)) + -((y-5)*(y-5))); %+ exp(-((x-7.5)*(x-7.5)) + -((y-7.5)*(y-7.5)));
-   %r = exp(-(abs(y-5)));
-   %r = 1;
+%A gaussion density function around center point (cx,cy)
+function r = density(x,y)
+	r = exp(-(x-5)*(x-5)-(y-5)*(y-5));
 end
 
 function [Cx,Cy] = PolyCentroidNonuniformDensity(X,Y, i)
@@ -271,7 +272,7 @@ function [Cx,Cy] = PolyCentroidNonuniformDensity(X,Y, i)
     numerator_vec_sum = [0 0];
     denominator_sum = 0;
     while j < current_sample
-        D = density(random_points(j,1),random_points(j,2), i);
+        D = density(random_points(j,1),random_points(j,2));
         numerator_vec_sum = numerator_vec_sum + random_points(j,:)*D;
         denominator_sum = denominator_sum + D;
         j = j + 1;
@@ -365,15 +366,12 @@ end
 %tweak both said parameters otherwise may terminate incorrectly.
 
 %main fuction
-function [px,py] = tangentBug (startx, starty, endx, endy, obs)
-
-    %figure;             %initialize the plotting window
-    axis ([0 10 0 10]);
+function [px,py] = tangentBug (startx, starty, endx, endy, obs, loop_gain, max_step)
     
     %give all variables global scope so that other functions may see them    
 
     global obstacle;  % N x (P,2) matrix for N obstacles, each with P vertices
-
+    axis([0 30 0 30]);
                         
     global d_set;       %matrix to store the vertices of discontinuities in scan
     global scan;        %the array to save current scan of the environment 
@@ -418,7 +416,7 @@ function [px,py] = tangentBug (startx, starty, endx, endy, obs)
     range = 2;
     r_res = 0.1;
     theta_res = 4*pi/180;
-    r_step = 0.3;
+    r_step = max_step;
     dmin=0;
     dreach=0;
     d_theta=0;
@@ -428,19 +426,14 @@ function [px,py] = tangentBug (startx, starty, endx, endy, obs)
     
     exit_flag=0; %this flag will be set when goal cant be reached
     
-    f = text(0.5,-0.75,'specify vertices of 4 obstacles (convex). for each obstacle give 4 vertices');
-    figure(2)
-    set(f,'String','enter start point');
-    set(f,'Position',[4 -0.75]);
+    %figure(2)
+
     start = [startx starty];      %get start point
     robot = start;
     r_planner(2,:) = robot;
-    %plot(start(1),start(2),'o','linewidth',2, 'color','black');;
     
-    set(f,'String','enter goal point');
-    %goal = ginput(1);       %get goal point
     goal=[endx endy];
-    hold on;
+    %hold on;
     
     %project the target into the region
     for i=1:size(obstacle,1)
@@ -471,28 +464,44 @@ function [px,py] = tangentBug (startx, starty, endx, endy, obs)
             %assert((min_point == [-1;-1]) ~= [ 1 1]);
             %Set goal to projected point
             goal = min_point';
+            %Move goal just outside of obstacle (either toward or away from
+            %robot)
+            goal_twiddle1 = goal + 0.05* (goal - robot);
+            goal_twiddle2 = goal - 0.05* (goal - robot);
+            
+            if ~inpolygon(goal_twiddle1(1),goal_twiddle1(2),obstacle(i,:,1),obstacle(i,:,2))
+                assert(inpolygon(goal_twiddle2(1),goal_twiddle2(2),obstacle(i,:,1),obstacle(i,:,2)));
+                goal = goal_twiddle1;
+                
+            elseif ~inpolygon(goal_twiddle2(1),goal_twiddle2(2),obstacle(i,:,1),obstacle(i,:,2))
+                assert(inpolygon(goal_twiddle1(1),goal_twiddle1(2),obstacle(i,:,1),obstacle(i,:,2)));
+                goal = goal_twiddle2;
+            else %Should never reach this, or else twiddle found no point near projection to use
+                %assert(false);
+                goal = goal;
+                
+            end
             break;
         end
     end
- 
     
-    plot(goal(1),goal(2),'m');
+    %plot(goal(1),goal(2),'m');
     %plot(startx, starty,'.','linewidth',3, 'color','black')
     %plot(centroidsX,centroidsY,'+','linewidth',2, 'color','black')
-    pause(0.01);
+    %pause(0.001);
     
     get_scan();             %scan the environment
     get_discontinuities();  %get discontinuities in the scan
     %plot(start(1),start(2),'o','linewidth',2, 'color','black');
     %plot(centroidsX,centroidsY,'+','linewidth',2, 'color','black')
     %plot(startX, startY,'.','linewidth',3, 'color','black')
-    plot(goal(1),goal(2),'+','linewidth',2, 'color','black');
+    %plot(goal(1),goal(2),'+','linewidth',2, 'color','black');
+        %pause(0.001);
     
-    pause(0.01);             %time delay
-
+    counter = 1;
     %remain inside loop until goal is reached
     while euc_dist(robot,goal)>0.2 && exit_flag==0
-        cla;                %clear the plotting window
+        %cla;                %clear the plotting window
         
         if mins(1)<0.5        %if the robot is too close to an obstacle, then
                               %do wall following irrespective of all behaviours 
@@ -540,17 +549,20 @@ function [px,py] = tangentBug (startx, starty, endx, endy, obs)
         get_scan();                         %get scan,discontinuities and plot start,goal and robot
         get_discontinuities();
         %plot(start(1),start(2),'o','linewidth',2, 'color','black');
-        plot(goal(1),goal(2),'+','linewidth',2, 'color','black');
+        %plot(goal(1),goal(2),'+','linewidth',2, 'color','black');
         %plot(centroidsX,centroidsY,'+','linewidth',2, 'color','black');        
         %plot(startx, starty,'.','linewidth',3, 'color','black');
-        plot(robot(1),robot(2),'.','linewidth',5, 'color','g');
-
-        %update the planner to mantain the vector of robot direction
+        %plot(robot(1),robot(2),'.','linewidth',5, 'color','g');
+        %pause(0.01);                         %pause needed so that the data is plotted properly.
+        
+                %update the planner to mantain the vector of robot direction
         r_planner(1,:) = r_planner(2,:);
         r_planner(2,:) = robot;
-        pause(0.01);                         %pause needed so that the data is plotted properly.
+        
         %HACK
-        break;
+        if counter > loop_gain
+            break;
+        end
     end
     if exit_flag==0
         %set(f,'String','reached goal successfully');
@@ -566,6 +578,7 @@ function [px,py] = tangentBug (startx, starty, endx, endy, obs)
 
 end
 
+% from http://cs.nyu.edu/~yap/classes/visual/03s/hw/h2/math.pdf
 function PT2 = proj(point, line)
 
 vx = line(:, 3);
