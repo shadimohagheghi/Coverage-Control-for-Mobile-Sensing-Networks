@@ -84,7 +84,7 @@ for counter = 1:numIterations
                 
     for i = 1:numel(c)
         %calculate the centroid of each cell
-        [cx,cy] = PolyCentroidNonuniformDensity(v(c{i},1),v(c{i},2));
+        [cx,cy] = PolyCentroidNonuniformDensity(v(c{i},1),v(c{i},2), obstacles);
         
 
         
@@ -181,7 +181,7 @@ function r = density(x,y)
 
 
    
-function [Cx,Cy] = PolyCentroidNonuniformDensity(X,Y)
+function [Cx,Cy] = PolyCentroidNonuniformDensity(X,Y, obstacles)
     CELL_SAMPLES = 500;
     %Triangulate points - returns a list of indices
     n = size(X,1)-1;
@@ -250,9 +250,24 @@ function [Cx,Cy] = PolyCentroidNonuniformDensity(X,Y)
     denominator_sum = 0;
     DENSITY = zeros(current_sample,1);
     while j < current_sample
+        
+        %Check to see if random sample is in obstacle
+        sample_in_obs_flag = 0;
+%         for ob =1:size(obstacles)
+%             if inpolygon(random_points(j,1),random_points(j,2),obstacles(ob,:,1), obstacles(ob,:,2))
+%                 sample_in_obs_flag = 1;
+%                 random_points(j,:) = [0 0];
+%                 break;
+%             end
+%         end
+%         if (sample_in_obs_flag == 1)
+%             j = j + 1;
+%             continue;
+%         end
         DENSITY(j,1) = density(random_points(j,1),random_points(j,2));
         numerator_vec_sum = numerator_vec_sum + random_points(j,:)*DENSITY(j,1);
         denominator_sum = denominator_sum + DENSITY(j,1);
+
         j = j + 1;
     end
    

@@ -32,7 +32,7 @@ if nargin < 6
     %Run combined tangentbug and lloyd
     loop_gain = 3;
     max_step = 0.25;
-    agent_loc(3,:,:,:) = combined(num_iterations,show_plot,num_agents,obstacles,seed,control_gain,loop_gain,max_step);
+    %agent_loc(3,:,:,:) = combined(num_iterations,show_plot,num_agents,obstacles,seed,control_gain,loop_gain,max_step);
 
     %Run optimal annealing, algorithm
     %agent_loc(4,:,:,:) = optimal_coverage_grid(num_iterations,show_plot,num_agents,obstacles,seed);
@@ -79,14 +79,17 @@ function obstacles = get_obstacle_set(ob_config)
     obstacles = [];
     if (ob_config == 1)
         obstacles = [];
-    elseif mod(ob_config,2) == 0
+    end
+    if mod(ob_config,2) == 0
         %one saw shape osbtacle in bottom left corner
         obstacles(size(obstacles,1)+1,:,:) = [0,0;10,0;10,10;2,7;7,4;0,0];
-    elseif mod(ob_config,3) == 0
+    end
+    if mod(ob_config,3) == 0
         % 
           obstacles(size(obstacles,1)+1,:,:) = [0,0;20,0;20,10;3,10;3,6;7,6;7,4;3,4;0,0];
-    elseif mod(ob_config,5) == 0
-        obstacles(size(obstacles, 1)+1,:,:) = [5,25;25,5;15,10;5,25];
+    end
+    if mod(ob_config,5) == 0
+        obstacles(size(obstacles,1)+1,:,:) = [5,25;25,5;15,10;5,25;5,25;5,25;5,25;5,25;5,25];
     end
     
 end

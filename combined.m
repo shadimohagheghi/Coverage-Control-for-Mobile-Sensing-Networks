@@ -116,13 +116,13 @@ for counter = 1:numIterations
         
         %If target is straight line viewable, use standard straight line
         %driving
-        if (~path_occluded(obstacles,Px(i),Py(i),cx,cy))
-            Px(i) = Px(i) + -K_prop*(Px(i) - cx);
-            Py(i) = Py(i) + -K_prop*(Py(i) - cy);
-        else
+%         if (~path_occluded(obstacles,Px(i),Py(i),cx,cy))
+%             Px(i) = Px(i) + -K_prop*(Px(i) - cx);
+%             Py(i) = Py(i) + -K_prop*(Py(i) - cy);
+%         else
         
             [Px(i),Py(i)] = tangentBug( Px(i), Py(i), cx, cy, obstacles, loop_gain, max_step);
-        end
+%         end
     end
     
     %Save real locations
