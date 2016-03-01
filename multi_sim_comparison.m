@@ -141,6 +141,26 @@ function cost_vec = get_cost_timeline(agent_locations,obstacles, NUM_SAMPLES)
 
 end
 
-function r = density(x,y)
-	r = exp(-(x-5)*(x-5)-(y-5)*(y-5));
+%function r = density(x,y)
+%	r = exp(-(x-5)*(x-5)-(y-5)*(y-5));
+%end
+function r = density(function_type, function_params)
+    r=0;
+    if (function_type == 1) %uniform distribution
+        r= 1;
+    end
+    
+    if (function_type == 2) %Gaussian distribution with center specified
+        r= exp(-(x-function_params(1))*(x-function_params(1))-(y-function_params(2))*(y-function_params(2)));
+    end
+    
+    if (function_type == 3) %eclipse
+        for i=0:10
+            r = r + exp(-(x-function_params(1)*cos(i)-function_params(1))*(x-function_params(1)*cos(i)-function_params(1)) + -(y-function_params(2)*sin(i)-function_params(2))*(y-function_params(2)*sin(i)-function_params(2)));
+        end
+    end
+    
+    if (function_type == 4) %straigh line
+        r = r + exp(-((x-i)*(x-i)) + -((y-i)*(y-i)));
+    end
 end
